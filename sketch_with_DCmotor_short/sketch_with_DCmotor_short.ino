@@ -33,7 +33,7 @@ const int UltrasonicEchoPin = 10;
 long duration1;
 int distance1;
 
-int Switch_inPin = 22;        // the number of the input pin
+int Switch_inPin = 26;        // the number of the input pin
 int Switch_state = HIGH;      // the current state of the output pin
 int Switch_reading;           // the current reading from the input pin
 int Switch_previous = LOW;    // the previous reading from the input pin
@@ -41,9 +41,15 @@ int Switch_previous = LOW;    // the previous reading from the input pin
 // will quickly become a bigger number than can be stored in an int.
 long Switch_time = 0;         // the last time the output pin was toggled
 long Switch_debounce = 200;   // the debounce time, increase if the output flickers
+int Switch_directionPin = 22; // the number of the input pin
 
 // Timer
 unsigned long time;
+
+// Extra items
+int counter1;
+int encoder_down;
+int motor_off_encoder;
 
 // LED pin
 int LED_pin = 13;        
@@ -75,29 +81,23 @@ void setup()
 
   // Select switch input
   pinMode(Switch_inPin, INPUT);
+  pinMode(Switch_directionPin, INPUT);
 
   // Turn off on-board LED
   pinMode(13, OUTPUT);
 
   // Initialize digital pin LED_BUILTIN as an output.  
   pinMode(LED_pin, OUTPUT);     // alternatively can use "LED_BUILTIN"
+
+  // extra initialize
+  counter1 = 0;
+  encoder_down = 1085;
+  motor_off_encoder = 0;
 }
 
 // Encoder setting
 long positionLeft  = -999;
 long positionRight = -999;
-
-void set_motor_pwm(int pwm, int IN1_PIN, int IN2_PIN)
-{
-  if (pwm < 0) {  // reverse speeds
-    analogWrite(IN1_PIN, -pwm);
-    digitalWrite(IN2_PIN, LOW);
-
-  } else { // stop or forward
-    digitalWrite(IN1_PIN, LOW);
-    analogWrite(IN2_PIN, pwm);
-  }
-}
 
 void loop()
 {
@@ -123,7 +123,33 @@ void loop()
     knobRight.write(0);
   }
   
-  if (digitalRead(Switch_inPin) == HIGH){
+  if (digitalRead(Switch_inPin) == LOW && motor_off_encoder == 0){
+    counter1 = 0;
+    time = millis(); 
+    if (digitalRead(Switch_directionPin) == HIGH) {
+      Serial.println("Motor Forward");
+      digitalWrite(MOT_A1_PIN, HIGH);      
+      digitalWrite(MOT_A2_PIN, LOW);
+      while ((digitalRead(Switch_directionPin) == HIGH) && (digitalRead(Switch_inPin) == LOW) && (motor_off_encoder == 0)) {
+        if (knobLeft.read() <= -1 || millis()-time>9000) {
+          motor_off_encoder = 1;  // Automatically turns motor off once conditions are met
+        }
+      }
+      Serial.println(millis()-time);
+    }
+    if (digitalRead(Switch_directionPin) == LOW) {
+      Serial.println("Motor backwards");
+      digitalWrite(MOT_A1_PIN, LOW);      
+      digitalWrite(MOT_A2_PIN, HIGH);
+      while ((digitalRead(Switch_directionPin) == LOW) && (digitalRead(Switch_inPin) == LOW) && (motor_off_encoder == 0)) {
+        if (knobLeft.read() >= encoder_down || millis()-time>4000) {
+          motor_off_encoder = 1;  // Automatically turns motor off once conditions are met
+        }
+      }
+      Serial.println(millis()-time);
+    }
+      
+    /*
     // Ultrasonic sensor
     // Clears the UltrasonicTrigPin wait 2 micro seconds
     digitalWrite(UltrasonicTrigPin, LOW);  
@@ -140,7 +166,9 @@ void loop()
     Serial.print("Distance: ");
     Serial.println(distance1);
     delay(250);
+    */
     
+    /*
     if (distance1<12 && distance1>1){
       // Turn motor on until encoder is over 12 then stop and reverse until encoder is less than or equal to 0
       //set_motor_pwm(50,MOT_A1_PIN,MOT_A2_PIN);
@@ -163,46 +191,36 @@ void loop()
       }
       //set_motor_pwm(0,MOT_A1_PIN,MOT_A2_PIN);
       digitalWrite(MOT_A1_PIN, LOW);
-      digitalWrite(MOT_A2_PIN, LOW);           
-      
-      /*
-      // Step forward until the encoder has moved one rotation
-      while (knobLeft.read() < 12) {
-        set_motor_pwm(5,MOT_A1_PIN,MOT_A2_PIN);
-      }
-      set_motor_pwm(0,MOT_A1_PIN,MOT_A2_PIN);
-      // Step reverse until the encoder has reversed to 0 rotation
-      while (knobLeft.read() > 0) {
-        set_motor_pwm(-5,MOT_A1_PIN,MOT_A2_PIN);
-      }      
-      set_motor_pwm(5,MOT_A1_PIN,MOT_A2_PIN);
-      */
-      
-      /*
-      // Step forward until the encoder has moved one rotation
-      while (knobLeft.read() < 12) {
-        stepper.step(1);
-      }
-      // Step reverse until the encoder has reversed to 0 rotation
-      while (knobLeft.read() > 0) {
-        stepper.step(-1);
-      }      
-      //Serial.println("Forward");
-      //stepper.step(STEPS);
-      //Serial.println("Backward");
-      //stepper.step(-STEPS);
-      */
+      digitalWrite(MOT_A2_PIN, LOW);            
       
       delay(100);   // Noise in the system was causing the ultrasonic sensor to read a low value?? so adding delay to avoid false positive
     }
+    */
   }
   else
   {
+    if (counter1 == 0) {
+      Serial.println("Motor Off");    // Turns off motor if the door was stopped manually or automatically
+      digitalWrite(MOT_A1_PIN, LOW);
+      digitalWrite(MOT_A2_PIN, LOW); 
+      counter1=1;
+      Serial.println("Wait until switch is released");    
+      while (digitalRead(Switch_inPin) == LOW) {
+        // Waits in this loop until the switch is turned off to change the direction
+      }
+      if ((digitalRead(Switch_inPin) == HIGH) && (motor_off_encoder == 1)) {
+        Serial.println("Reset encoder shutoff");    
+        motor_off_encoder = 0;    // Bring encoder shutoff variable back to 0
+        delay(100);               // Prevents any switch bounce from briefly turning on motors
+      }
+    }
+    /*
     // Blink LED on and off
     digitalWrite(LED_pin, HIGH);      // turn the LED on (HIGH is the voltage level)
     delay(500);                       // wait 
     digitalWrite(LED_pin, LOW);       // turn the LED off by making the voltage LOW
     delay(500);                       // wait 
+    */
   }  
   
   
