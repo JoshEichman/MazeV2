@@ -13,7 +13,7 @@ const char pass[] = "roundwind557";            // password of your home WiFi
 
 unsigned long askTimer = 0;
 
-IPAddress server(192,168,0,80);       // the fix IP address of the server
+IPAddress server(192,168,1,9);       // the fixed IP address of the server
 WiFiClient client;
 
 void setup() {
@@ -34,12 +34,12 @@ void setup() {
 }
 
 void loop () {
-  client.connect(server, 80);   // Connection to the server
+  client.connect(server, 21);   // Connection to the server
   digitalWrite(ledPin, LOW);    // to show the communication only (inverted logic)
   Serial.println(".");
   client.println("Hello server! Are you sleeping?\r");  // sends the message to the server
-  String answer = client.readStringUntil('\r');   // receives the answer from the sever
-  Serial.println("from server: " + answer);
+  //String answer = client.readStringUntil('\r');   // receives the answer from the sever
+  //Serial.println("from server: " + answer);
   client.flush();
   digitalWrite(ledPin, HIGH);
   delay(2000);                  // client will trigger the communication after two seconds
