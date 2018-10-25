@@ -25,23 +25,53 @@ mydb.close()
 
 # Pull results from the database    localhost
 import mysql.connector
+import time
+import numpy as np
+
 mydb = mysql.connector.connect(
-  host="remotehost",
+  host="127.0.0.1",
   user="MazeDoor",
   passwd="rooDezaM*2",
   database="MazeV2")
-mycursor = mydb.cursor()
-query = ("SELECT * FROM data1;")
-mycursor.execute(query)
-result = mycursor.fetchall()   # fetchmany()   fetchone()
-print("result:",result)
-mycursor.close()
+#query = ("SELECT * FROM data1;")
+query = ("SELECT Distance FROM data1 WHERE Cell=1;")
+c0=0;
+result1 = [0];
+while 1==1:
+    mycursor = mydb.cursor()
+    mycursor.execute(query)
+    result = mycursor.fetchone()   # fetchmany()   fetchone()
+    print("result:",result)
+    mycursor.close()
+    if result1[c0] != result[0]:    # Check if the value changed and if so record
+        c0=c0+1
+        result1[c0] = result[0]
+    time.sleep(0.1) 
+    mydb.reset_session()   
+        
 mydb.close()
+    
+ 
+from MySQLdb.cursors import SSCursor
+conn = MySQLdb.connect("localhost", "test", "test", "test")
+
+
+while True:
+    input = raw_input("Enter anything: ")
+    if input == "exit":
+        break
+    c = conn.cursor()
+    conn.begin()
+    c.execute("SELECT COUNT(*) FROM test")
+    res = c.fetchone()[0]
+    #c.commit()
+    c.close()    
+    
 
 # Update data points
 import mysql.connector
 mydb = mysql.connector.connect(
-  host="localhost",
+  host="127.0.0.1",
   user="MazeDoor",
   passwd="rooDezaM*2",
   database="MazeV2")
@@ -56,7 +86,7 @@ mydb.close()
 # Check version
 import mysql.connector
 mydb = mysql.connector.connect(
-  host="localhost",
+  host="127.0.0.1",
   user="MazeDoor",
   passwd="rooDezaM*2",
   database="MazeV2")
@@ -64,6 +94,21 @@ mycursor.execute("SELECT VERSION()")
 ver = mycursor.fetchone()
 print("Database version : %s " % ver)
 
+
+# Pull results from the database    localhost   Nuria-MacBook-Pro.remote
+# To log into remote MySQL mac server you can create a user with hostname '%' then use the computer IP as the host. Alternatively you can tunnel into computer then run as local 
+mydb = mysql.connector.connect(
+  host="192.168.1.5",
+  user="user1",
+  passwd="password1",
+  database="MazeV2mac")
+mycursor = mydb.cursor()
+query = ("SELECT * FROM table1;")
+mycursor.execute(query)
+result = mycursor.fetchall()   # fetchmany()   fetchone()
+print("result:",result)
+mycursor.close()
+mydb.close()
 
 
 
