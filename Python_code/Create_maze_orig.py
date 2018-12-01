@@ -1,59 +1,4 @@
 
-
-import pandas as pd
-import random
-
-width = 10;
-height = 10;
-Initial_cell = [0,0];       # Width, Height
-
-visited_num = 1;
-columns1 = ["x","y","N","S","E","W"]
-data1 = []
-data2 = [Initial_cell + [1,1,1,1]]
-cell_stack = pd.DataFrame(data2, columns=columns1) 
-
-for i0 in range(width):
-    for i1 in range(height):
-        data1.append([i0,i1,1,1,1,1])
-Maze_cells = pd.DataFrame(data1, columns=columns1)
-
-while (visited_num < width*height):
-    # Check neighbors
-    neighbors1 = [1,1,1,1]
-    if Initial_cell[0]==0:      neighbors1[0] = 0
-    if Initial_cell[0]==width:  neighbors1[1] = 0
-    if Initial_cell[1]==0:      neighbors1[3] = 0
-    if Initial_cell[1]==height: neighbors1[2] = 0    
-    neighbors1_index = [i for i, e in enumerate(neighbors1) if e != 0]
-
-    # Select next cell
-    cell_next = random.choice(neighbors1_index)
-    
-    # Remove wall and add to stack
-    cell_stack = ...............
-    
-    n = 3
-    m = 4
-    a = []
-    for i in range(n):
-        a.append([0] * m)
-    
-
-    while n_visited_cells < len(self.cells):
-        neighbors = [c for c in self.neighbors(cell) if c.is_full()]
-        if len(neighbors):
-            neighbor = random.choice(neighbors)
-            cell.connect(neighbor)
-            cell_stack.append(cell)
-            cell = neighbor
-            n_visited_cells += 1
-        else:
-            cell = cell_stack.pop()
-    
-    
-
-"""
 # -*- coding: utf-8 -*-
 import random
 
@@ -282,7 +227,7 @@ class Maze(object):
         Algorithm from http://mazeworks.com/mazegen/mazetut/index.htm
         """
         cell_stack = []
-        cell = random.choice(self.cells)
+        cell = self.cells[0]     # Set starting point    #cell = random.choice(self.cells)
         n_visited_cells = 1
 
         while n_visited_cells < len(self.cells):
@@ -304,17 +249,92 @@ class Maze(object):
         m = Maze(width, height)
         m.randomize()
         return m
-                    
+    
+#    def maze_properties(self):
+#        """
+#        http://datagenetics.com/blog/november22015/index.html
+#        1. Count the number of dead ends
+#        2. Find the longest path
+#        3. Find path to exit
+#        4. Determine convolution of defined path
+#        5. Calcualte distribution of valency
+#        6. Calculate complexity
+#        """
+#        cell_stack = []
+#        cell = self.cells[0]     # Set starting point    #cell = random.choice(self.cells)
+#        n_visited_cells = 1
+#        while n_visited_cells < len(self.cells):
+#            neighbors = [c for c in self.neighbors(cell) if c.is_full()]
+#            if len(neighbors):
+#                neighbor = random.choice(neighbors)
+#                cell.connect(neighbor)
+#                cell_stack.append(cell)
+#                cell = neighbor
+#                n_visited_cells += 1
+#            else:
+#                cell = cell_stack.pop() 
+#
+#        cell_stack.append(cell)
+                           
 
-M1 = Maze(4,4)
-M1.randomize()
-M1.cells[1]
 
-M1_print = ._to_str_matrix()
 
-M1.__repr__
-M1_print.__repr__
-"""
+
+#Break down maze randomization and show
+import time
+M1 = Maze(8,8)
+cell_stack = []
+cell = M1.cells[0]    #cell = random.choice(M1.cells)
+n_visited_cells = 1
+    
+while (n_visited_cells < len(M1.cells)):
+    neighbors = [c for c in M1.neighbors(cell) if c.is_full()]
+    if len(neighbors):
+        neighbor = random.choice(neighbors)
+        cell.connect(neighbor)
+        cell_stack.append(cell)
+        cell = neighbor
+        n_visited_cells += 1
+    else:
+        cell = cell_stack.pop()            
+    print(M1)
+    time.sleep(0.1)
+
+
+M1 = Maze(8,8)
+cell_stack = []
+cell = M1.cells[0]     # Set starting point    #cell = random.choice(self.cells)
+n_visited_cells = 1
+while n_visited_cells < len(M1.cells):
+    neighbors = [c for c in M1.neighbors(cell) if c.is_full()]
+    if len(neighbors):
+        neighbor = random.choice(neighbors)
+        cell.connect(neighbor)
+        cell_stack.append(cell)
+        cell = neighbor
+        n_visited_cells += 1
+    else:
+        cell = cell_stack.pop() 
+
+
+import time
+start = time.time()
+for i0 in range(1000):
+    M2 = Maze(8,8)
+    M2.randomize()
+    #print(M2)
+end = time.time()
+print(end - start)
+
+
+#M1.randomize()
+#M1.cells[1]
+
+#M1_print = ._to_str_matrix()
+
+#M1.__repr__
+#M1_print.__repr__
+
 
 
 

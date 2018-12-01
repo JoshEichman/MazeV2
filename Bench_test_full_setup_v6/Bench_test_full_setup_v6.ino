@@ -74,6 +74,11 @@ int doorB_position;
 int doorA_previous_position;
 int doorB_previous_position;
 int door_timer;
+int encoder_timer;
+int encoder_timer_counter;
+int reset_door_frequency;
+int reset_doorA_counter;
+int reset_doorB_counter;
 int initialize_counter;
 
 void setup()
@@ -106,20 +111,29 @@ void setup()
   // extra initialize
   doorA_previous_position = abs(doorA_position-1);  // Tracks if the door position has changed and Turn motor off (must be different than initial door position)
   doorB_previous_position = abs(doorB_position-1);  // Tracks if the door position has changed and Turn motor off (must be different than initial door position)
-  encoder_down = 2000;                              // Encoder reading when door is down (Previous test value = 1085)
+  encoder_down = 2300;                              // Encoder reading when door is down (Previous test value = 1085)
   door_timer = 10000;                               // Time to wait between door changes (ms) 
-}
+  encoder_timer = 100;                              // Check to see if the encoder is moving within this time (ms)
+  encoder_timer_counter = 1;                        // Used in conjunction with encoder_timer to periodically check that the encoder is still moving
+  reset_door_frequency = 3;                         // Reset door by running to max position and resetting encoder after this many door lifting events
+  reset_doorA_counter = 1;                          // Used in conjunction with reset_door_frequency to reset door encoder
+  reset_doorB_counter = 1;                          // Used in conjunction with reset_door_frequency to reset door encoder
+  initialize_counter = 0;                           // Used to run code on the first iteration of loop()
+} 
 
 
 // Encoder setting
-long positionA  = -999;
+long positionA = -999;
 long positionB = -999;
 
 
 void loop()
 {
-  //digitalWrite(LED_BUILTIN, HIGH);   // turn the LED off (for some reason LOW doesn't work)
-
+  if (initialize_counter==0) {
+    if (doorA_position==0) { knobA.write(encoder_down); }
+    if (doorB_position==0) { knobB.write(encoder_down); }
+  }
+  
   // Set A and B encoders
   long newA, newB;
   newA = knobA.read();
@@ -141,7 +155,7 @@ void loop()
     knobA.write(0);
     knobB.write(0);
   }
-  
+
   // Check Ultrasonic sensor
   // Clears the UltrasonicTrigPin wait 5 micro seconds
   digitalWrite(UltrasonicTrigPin, LOW);  
@@ -155,8 +169,8 @@ void loop()
   // Calculating the distance
   distance1 = duration1 * 0.034 / 2 / 2.54;
   // Prints the distance on the Serial Monitor
-  Serial.print("Distance: ");
-  Serial.println(distance1);
+  //Serial.print("Distance: ");
+  //Serial.println(distance1);
   delay(250);
 
 
@@ -169,6 +183,8 @@ void loop()
   if ((millis()-time2)>=door_timer) {
     Serial.println("Time reached"); 
     time1 = millis(); 
+    encoder_timer_counter = 1;
+    newA = knobA.read(); 
     
     // Door Controls
     if (doorA_position == 0) {        // If its down then take it up
@@ -176,11 +192,32 @@ void loop()
       digitalWrite(MOT_A1_PIN, HIGH);      
       digitalWrite(MOT_A2_PIN, LOW);
       while (doorA_position == 0) {
+        if (millis()-time1>=encoder_timer_counter*encoder_timer) {
+          if (newA==knobA.read()) {
+            doorA_position = 1;             // Change to show new door position before exiting loop 
+            break;    // If the encoder value is identical from the last encoder_timer interval exit loop and stop motor
+          }
+          newA = knobA.read(); 
+          encoder_timer_counter++;    // Increment encoder
+        }        
         delay(2);
-        if ((knobA.read() <= -encoder_down || (millis()-time1)>=10000)) {  
-          doorA_position = 1;             // Change to show new door position  
+        if (knobA.read() <= -1) {
+          if (reset_door_frequency != reset_doorA_counter) {   // If statement used to delay motor off every "reset_door_frequency" to reset encoders. Relies on the stall check above to turn off motors 
+            doorA_position = 1;             // Change to show new door position  
+          }
+          if (millis()-time1>=16000) {      // Just in case the string has broken or something else that allows the pulley to continue spinning during an encoder reset, default time 
+            Serial.println("DoorA Time out"); 
+            doorA_position = 1;             // Change to show new door position  
+          }
         }
       }
+      if (reset_door_frequency <= reset_doorA_counter) {    // Because the break doesn't allow for reset_doorA_counter to increment an additional time on the final iteration this inequality is correct as written 
+        reset_doorA_counter = 1;          // reset counter        
+        Serial.println("DoorA encoder reset");
+        knobA.write(0);
+      } 
+      reset_doorA_counter++;          // Increment counter       
+
       Serial.println("Motor Off");    // Turns off motor if the door was stopped manually or automatically
       digitalWrite(MOT_A1_PIN, LOW);
       digitalWrite(MOT_A2_PIN, LOW); 
@@ -191,8 +228,16 @@ void loop()
       digitalWrite(MOT_A1_PIN, LOW);      
       digitalWrite(MOT_A2_PIN, HIGH);
       while (doorA_position == 1) {
+        if (millis()-time1>=encoder_timer_counter*encoder_timer) {
+          if (newA==knobA.read()) {
+            doorA_position = 0;             // Change to show new door position before exiting loop
+            break;    // If the encoder value is identical from the last encoder_timer interval exit loop and stop motor
+          }
+          newA = knobA.read(); 
+          encoder_timer_counter++;    // Increment encoder
+        }        
         delay(2);
-        if ((knobA.read() >= 0 || (millis()-time1)>=10000)) { 
+        if ((knobA.read() >= encoder_down || (millis()-time1)>=16000)) { 
           doorA_position = 0;             // Change to show new door position
         }
       }
@@ -200,7 +245,7 @@ void loop()
       digitalWrite(MOT_A1_PIN, LOW);
       digitalWrite(MOT_A2_PIN, LOW); 
       Serial.println(millis()-time1);
-    }          
+    }         
   }
 
 
@@ -213,6 +258,8 @@ void loop()
   if ((millis()-time3)>=door_timer) {
     Serial.println("Time reached"); 
     time1 = millis(); 
+    encoder_timer_counter = 1;
+    newB = knobB.read(); 
     
     // Door Controls
     if (doorB_position == 0) {        // If its down then take it up
@@ -220,12 +267,38 @@ void loop()
       digitalWrite(MOT_B1_PIN, HIGH);      
       digitalWrite(MOT_B2_PIN, LOW);
       while (doorB_position == 0) {
+        if (millis()-time1>=encoder_timer_counter*encoder_timer) {
+          if (newB==knobB.read()) {
+            Serial.println("DoorB jam");
+            doorB_position = 1;             // Change to show new door position before exiting loop
+            break;    // If the encoder value is identical from the last encoder_timer interval exit loop and stop motor
+          }
+          Serial.print("EncoderBprevious=");
+          Serial.print(newB);
+          Serial.print(" EncoderBnew=");
+          Serial.println(knobB.read());
+          newB = knobB.read(); 
+          encoder_timer_counter++;    // Increment encoder
+        }        
         delay(2);
-        
-        if ((knobB.read() <= -encoder_down || (millis()-time1)>=10000)) {      
-          doorB_position = 1;             // Change to show new door position          
+        if (knobB.read() <= -1) {      
+          if (reset_door_frequency != reset_doorB_counter) {   // If statement used to delay motor off every "reset_door_frequency" to reset encoders. Relies on the stall check above to turn off motors
+            Serial.println("DoorB normal exit");
+            doorB_position = 1;             // Change to show new door position  
+          }
+          if (millis()-time1>=16000) {      // Just in case the string has broken or something else that allows the pulley to continue spinning during an encoder reset, default time 
+            Serial.println("DoorB Time out"); 
+            doorB_position = 1;             // Change to show new door position  
+          }
         }
       }
+      if (reset_door_frequency <= reset_doorB_counter) {    // Because the break doesn't allow for reset_doorB_counter to increment an additional time on the final iteration this inequality is correct as written 
+        reset_doorB_counter = 0;      // reset counter        
+        Serial.println("DoorB encoder reset");
+        knobB.write(0);
+      }
+      reset_doorB_counter++;          // Increment counter
+
       Serial.println("Motor Off");    // Turns off motor if the door was stopped manually or automatically
       digitalWrite(MOT_B1_PIN, LOW);
       digitalWrite(MOT_B2_PIN, LOW); 
@@ -236,8 +309,16 @@ void loop()
       digitalWrite(MOT_B1_PIN, LOW);      
       digitalWrite(MOT_B2_PIN, HIGH);
       while (doorB_position == 1) {
+        if (millis()-time1>=encoder_timer_counter*encoder_timer) {
+          if (newB==knobB.read()) {
+            doorB_position = 0;             // Change to show new door position before exiting loop
+            break;    // If the encoder value is identical from the last encoder_timer interval exit loop and stop motor
+          }
+          newB = knobB.read(); 
+          encoder_timer_counter++;    // Increment encoder
+        }        
         delay(2);
-        if ((knobB.read() >= 0) || (millis()-time1)>=10000) { 
+        if ((knobB.read() >= encoder_down) || (millis()-time1)>=10000) { 
           doorB_position = 0;             // Change to show new door position
         }
       }

@@ -1,0 +1,5 @@
+Cell,Distance,Door_setting_actual,Door_setting_desired,Door_status,Time_to_change
+1,0,0,0,0,0
+2,2,0,0,0,0
+3,1,NULL,NULL,NULL,NULL
+4,1,NULL,NULL,NULL,NULL

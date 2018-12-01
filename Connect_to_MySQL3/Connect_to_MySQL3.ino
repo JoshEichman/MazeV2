@@ -37,14 +37,21 @@
 
 //* 
 // For MAC
+// Notes: fix laptop IP
+// set each ESP IP from 100+
+// If ESP can;t connect go into random. try again after X times/seconds
+// Save time of ESP last access (add column)
+// Add column for setpoint and actual
 IPAddress server_addr(192,168,1,5);  // IP of the MySQL *server* here (Mac: 192,168,1,5)
 // Must create database, then create user with full priveledges (including grant?) and leave the hostname as wildcard '%'
+
 // Windows   Had to change the authentication to standard (ALTER USER 'user1'@'%' IDENTIFIED WITH mysql_native_password BY 'pass1'; FLUSH PRIVILEGES;)
-char user[] = "MazeDoor";           // MySQL user login username@hostname
-char password[] = "rooDezaM*2";     // MySQL user login password
+// char user[] = "MazeDoor";           // MySQL user login username@hostname
+// char password[] = "rooDezaM*2";     // MySQL user login password
+
 // MAC
-// char user[] = "user1";           // MySQL user login username@hostname
-// char password[] = "password1";   // MySQL user login password
+char user[] = "user1";           // MySQL user login username@hostname
+char password[] = "password1";   // MySQL user login password
 //*/
 
 // Random number
@@ -60,13 +67,25 @@ char password[] = "rooDezaM*2";     // MySQL user login password
 */
 
 // Sample query
-//char INSERT_SQL[] = "INSERT INTO MazeV2mac.table1 (Cell,distance,Door_set) VALUES (145, 1, 1)";   // MAC
+/*
+// Windows
 char INSERT_SQL[] = "INSERT INTO MazeV2.data1 (Cell,Distance,Door_set) VALUES (145, 1, 1)";   // Windows
 // char UPDATE_SQL[30];   //char UPDATE_SQL[] = "UPDATE MazeV2.data1 SET Distance=10 WHERE Cell=1";
 char UPDATE_SQL_TEXT1[] = "UPDATE MazeV2.data1 SET Distance=";
 char UPDATE_SQL_TEXT2[] = " WHERE Cell=1";
 char SELECT_SQL[] = "SELECT Distance FROM MazeV2.data1 WHERE Cell=1";
 char cstr[16];
+*/
+
+//*
+// MAC
+char INSERT_SQL[] = "INSERT INTO MazeV2mac.table1 (Cell,distance,Door_set) VALUES (4, 1, 1)";   // MAC
+char UPDATE_SQL_TEXT1[] = "UPDATE MazeV2mac.table1 SET Distance=";
+char UPDATE_SQL_TEXT2[] = " WHERE Cell=1";
+char SELECT_SQL[] = "SELECT Distance FROM MazeV2mac.table1 WHERE Cell=1";
+char cstr[16];
+ 
+//*/
 
 // WiFi card example
 char ssid[] = "Nuria's Hizzie 2"; // SSID of your home WiFi

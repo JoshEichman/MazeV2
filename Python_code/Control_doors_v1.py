@@ -1,32 +1,139 @@
 # -*- coding: utf-8 -*-
 """
-Spyder Editor
-
-This is a temporary script file.
+Initialize
 """
-
-# Populate empty database
-door_num = 144
+import time
 import mysql.connector
+import pandas as pd
+
+
+# Pull results from the database    localhost   Nuria-MacBook-Pro.remote
+# To log into remote MySQL mac server you can create a user with hostname '%' then use the computer IP as the host. Alternatively you can tunnel into computer then run as local 
 mydb = mysql.connector.connect(
-  host="localhost",
-  user="MazeDoor",
-  passwd="rooDezaM*2",
-  database="MazeV2")
+  host="192.168.1.5",
+  user="user1",
+  passwd="password1",
+  database="MazeV2mac")
 mycursor = mydb.cursor()
-sql = "INSERT INTO data1 (Cell,distance,Door_set) VALUES (%s, %s, %s)"
-for i0 in range(door_num): 
-    val = (i0+1,0,0)
-    mycursor.execute(sql, val)
-    mydb.commit()
-    #print(mycursor.rowcount, "record inserted.")
+query = ("SELECT * FROM table1;")
+mycursor.execute(query)
+result = mycursor.fetchall()   # fetchmany()   fetchone()
+print("result:",result)
 mycursor.close()
 mydb.close()
+
+
+# Go through each line and change motors at predefined times
+#t0 = time.time()
+#code_block
+#t1 = time.time()
+#total = t1-t0
+
+
+# Define program timing by importing CSV
+df = pd.read_csv('Program_timing_initialize.csv', delimiter=',')
+# Or export it in many ways, e.g. a list of tuples
+tuples = [tuple(x) for x in df.values]
+# or export it as a list of dicts
+dicts = df.to_dict().values()
+
+
+for i0 in range(df.shape[0]):
+    # Update data points
+    mydb = mysql.connector.connect(
+      host="192.168.1.5",
+      user="user1",
+      passwd="password1",
+      database="MazeV2mac")
+    mycursor = mydb.cursor()
+    query_update = ("UPDATE MazeV2mac.table1 SET Door_setting_desired="+str(df['Door_setting_desired'].iloc[i0])+" WHERE Cell="+str(df['Cell'].iloc[i0])+";")
+    mycursor.execute(query_update)
+    mydb.commit()
+    mycursor.close()
+    mydb.close()
+
+    print("Door_setting_desired="+str(df['Door_setting_desired'].iloc[i0])+" for Cell="+str(df['Cell'].iloc[i0]))
+        
+    # Wait until changing next door
+    time.sleep(df['Time'].iloc[i0])
+
+# Wait until changing next door
+print("Initialization finished, moving into main program")
+time.sleep(5)
+    
+# Define program timing by importing CSV
+df = pd.read_csv('Program_timing_v2.csv', delimiter=',')
+# Or export it in many ways, e.g. a list of tuples
+tuples = [tuple(x) for x in df.values]
+# or export it as a list of dicts
+dicts = df.to_dict().values()
+
+
+# Loop through program infinitely
+while (1==1):
+    for i0 in range(df.shape[0]):
+        # Update data points
+        mydb = mysql.connector.connect(
+          host="192.168.1.5",
+          user="user1",
+          passwd="password1",
+          database="MazeV2mac")
+        mycursor = mydb.cursor()
+        query_update = ("UPDATE MazeV2mac.table1 SET Door_setting_desired="+str(df['Door_setting_desired'].iloc[i0])+" WHERE Cell="+str(df['Cell'].iloc[i0])+";")
+        mycursor.execute(query_update)
+        mydb.commit()
+        mycursor.close()
+        mydb.close()
+    
+        print("Door_setting_desired="+str(df['Door_setting_desired'].iloc[i0])+" for Cell="+str(df['Cell'].iloc[i0]))
+            
+        # Wait until changing next door
+        time.sleep(df['Time'].iloc[i0])
+
+   
+
+if 1==0:
+    # Populate empty database
+    import mysql.connector
+    door_num = 100
+    mydb = mysql.connector.connect(
+      host="192.168.1.5",
+      user="user1",
+      passwd="password1",
+      database="MazeV2mac")
+    mycursor = mydb.cursor()
+    sql = "INSERT INTO ESP_to_IP (Cell,IP) VALUES (%s, %s)"
+    for i0 in range(door_num): 
+        val = (i0+1,"192.168.1."+str(100+i0+1))
+        mycursor.execute(sql, val)
+        mydb.commit()
+        #print(mycursor.rowcount, "record inserted.")
+    mycursor.close()
+    mydb.close()
+
+
+
+
+
+""" UNUSED 
+# Contains code to use putty socket to connect to DB and other odds and ends
 
 # Pull results from the database    localhost
 import mysql.connector
 import time
 import numpy as np
+
+# Check version
+import mysql.connector
+mydb = mysql.connector.connect(
+  host="127.0.0.1",
+  user="MazeDoor",
+  passwd="rooDezaM*2",
+  database="MazeV2")
+mycursor.execute("SELECT VERSION()")
+ver = mycursor.fetchone()
+print("Database version : %s " % ver)
+
 
 mydb = mysql.connector.connect(
   host="127.0.0.1",
@@ -67,51 +174,6 @@ while True:
     #c.commit()
     c.close()    
     
-
-# Update data points
-import mysql.connector
-mydb = mysql.connector.connect(
-  host="127.0.0.1",
-  user="MazeDoor",
-  passwd="rooDezaM*2",
-  database="MazeV2")
-mycursor = mydb.cursor()
-query_update = ("UPDATE mazev2.data1 SET Distance=3 WHERE Cell=1;")
-mycursor.execute(query_update)
-mydb.commit()
-mycursor.close()
-mydb.close()
-
-
-# Check version
-import mysql.connector
-mydb = mysql.connector.connect(
-  host="127.0.0.1",
-  user="MazeDoor",
-  passwd="rooDezaM*2",
-  database="MazeV2")
-mycursor.execute("SELECT VERSION()")
-ver = mycursor.fetchone()
-print("Database version : %s " % ver)
-
-
-# Pull results from the database    localhost   Nuria-MacBook-Pro.remote
-# To log into remote MySQL mac server you can create a user with hostname '%' then use the computer IP as the host. Alternatively you can tunnel into computer then run as local 
-import mysql.connector
-mydb = mysql.connector.connect(
-  host="192.168.1.5",
-  user="user1",
-  passwd="password1",
-  database="MazeV2mac")
-mycursor = mydb.cursor()
-query = ("SELECT * FROM table1;")
-mycursor.execute(query)
-result = mycursor.fetchall()   # fetchmany()   fetchone()
-print("result:",result)
-mycursor.close()
-mydb.close()
-
-
 
 
 sql_select_Query = ("select * from python_developers")
@@ -235,7 +297,7 @@ ser.open()
 
 
 
-"""
+
 import socket
 
 # Create a TCP/IP socket
@@ -243,11 +305,10 @@ sock = socket.create_connection(('192.168.1.9', 21))
 sock.sendall(bytes('Distance', 'utf-8'))
 sock.send('e'.encode()) 
 sock.close()
-"""
 
 
 
-"""
+
 import socket
 import sys
 
