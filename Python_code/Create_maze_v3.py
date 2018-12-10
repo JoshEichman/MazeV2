@@ -290,39 +290,37 @@ class Maze(object):
                 n_visited_cells += 1
             else:
                 cell = cell_stack.pop()
-
+    
+    def adjust_maze(self): 
+        doors_to_change = random.choice(range(2,6))     # Randomly selects the number of doors to change
+        
+        
     def prop_calc(self):
         """
         Define maze properties
           http://datagenetics.com/blog/november22015/index.html
-        1. Count the number of dead ends
-        2. Find the longest path
+        1. Find the longest path
+        2. Count the number of dead ends
         3. Calcualte distribution of valency
         4. Determine convolution of defined path
         5. Calculate complexity
         6. Length of dead ends
         7. Maximum straight section
-        """
-        text1 = []
-        # 1. Count the number of dead ends
-        dead_ends = 0
-        for cell in self.cells:
-            direction_vec = 0
-            if N in cell: direction_vec += 1
-            if S in cell: direction_vec += 1
-            if W in cell: direction_vec += 1
-            if E in cell: direction_vec += 1
-            if direction_vec >= 3: dead_ends += 1        
-        text1.append('1. Dead ends = '+str(dead_ends)) 
-    
-        # 2. Use the wall follower to determine maze properties
+        """        
+        # Property     [1   2   3   4   5   6   7  ]
+        Weighting =    [1  ,1  ,0  ,1  ,3  ,3  ,1  ]      # Set Total_score weighting values
+        Constraints = [[4  ,0  ,0  ,7  ,5  ,0  ,0  ],     # Min constraint
+                       [6  ,10 ,1  ,10 ,10 ,9  ,3  ]]     # Max constraint
+
+        text1 = []    
+        # 1. Use the wall follower to determine maze properties
         cell = self.cells[0]     # Set starting point    #cell = random.choice(self.cells)
         movement_dir = 's'       # Set starting direction
         n_visited_cells = 1
         cell_stack = []
         cell_stack.append(cell)        
-        cell_stack_max = []
-        cell_stack_max_wall = []
+        #cell_stack_max = []     # Holds maximum length solution
+        cell_stack_max_wall = [] # Holds maximum length solution that touches east or south wall
         while (n_visited_cells < len(self.cells)) or (cell == self.cells[0]):
             # Find viable wall using right wall follower
             [x,y,movement_dir] = self.right_wall(cell,movement_dir)
@@ -336,13 +334,24 @@ class Maze(object):
                 if i==0:
                     cell_stack.append(cell)
                     n_visited_cells += 1 
-                    # Track longest route
-                    if (len(cell_stack)>len(cell_stack_max)):
-                        cell_stack_max = cell_stack[:]                    
+                      ## Track longest route
+                      #if (len(cell_stack)>len(cell_stack_max)):
+                      #    cell_stack_max = cell_stack[:]                    
                     # Track longest route that ends on opposite walls
                     if (len(cell_stack)>len(cell_stack_max_wall) and (cell.x==self.width-1 or cell.y==self.height-1)):
                         cell_stack_max_wall = cell_stack[:]
-        text1.append('2. Solution length = '+str(len(cell_stack_max_wall))+', '+str(round(len(cell_stack_max_wall)/(self.width*self.height)*100,1))+'% of cells, Exit = ['+str(cell_stack_max_wall[-1].x)+','+str(cell_stack_max_wall[-1].y)+']')
+        text1.append('1. Solution length = '+str(len(cell_stack_max_wall))+', '+str(round(len(cell_stack_max_wall)/(self.width*self.height)*100,1))+'% of cells, Exit = ['+str(cell_stack_max_wall[-1].x)+','+str(cell_stack_max_wall[-1].y)+']')
+
+        # 1. Count the number of dead ends
+        dead_ends = 0
+        for cell in self.cells:
+            direction_vec = 0
+            if N in cell: direction_vec += 1
+            if S in cell: direction_vec += 1
+            if W in cell: direction_vec += 1
+            if E in cell: direction_vec += 1
+            if direction_vec >= 3: dead_ends += 1        
+        text1.append('2. Dead ends = '+str(dead_ends)) 
         
         # 3. Calculate the distribution of valency
         Valency = [0,0,0,0]
@@ -418,11 +427,6 @@ class Maze(object):
                            Complexity,
                            max(List_of_dead_ends),
                            Longest_segment]
-        
-        # Property     [1   2   3   4   5   6   7  ]
-        Weighting =    [1  ,1  ,0  ,1  ,3  ,3  ,1  ]      # Set Total_score weighting values
-        Constraints = [[0  ,4  ,0  ,7  ,5  ,0  ,0  ],     # Min constraint
-                       [10 ,6  ,1  ,10 ,10 ,10 ,4  ]]     # Max constraint
 
         Total_score = round(sum([a*b for a,b in zip(Property_matrix,Weighting)]),1)
         if any(Property_matrix[i] < Constraints[0][i] for i in range(len(Property_matrix))):
@@ -456,11 +460,20 @@ while Total_score<Desired_score:
     count1 += 1
     if count1 % 1000==0: 
         print(count1)
+
 print(m1)
 for i in Output_text:
     print(i)
 print('Iterations required to achieve a score of '+str(Total_score)+' was '+str(count1))   
  
+
+"""
+Steps for reshaping maze
+1. randomly pick several segments (2-10)
+2. Change door position
+3. Check properties
+4. If relaxed constraints are met then continue
+"""
 
 
 
