@@ -53,6 +53,7 @@ class Cell(object):
         other.walls.remove(other._wall_to(self))
         self.walls.remove(self._wall_to(other))
 
+       
 class Maze(object):
     """
     Maze class containing full board and maze generation algorithms.
@@ -290,12 +291,84 @@ class Maze(object):
                 n_visited_cells += 1
             else:
                 cell = cell_stack.pop()
+
     
     def adjust_maze(self): 
-        doors_to_change = random.choice(range(2,6))     # Randomly selects the number of doors to change
+        """
+        Steps for reshaping maze
+        1. randomly pick several segments (even number) (Use maze solution skeleton to quickly help find potential doors to adjust)
+        2. Change door position
+        3. Check properties
+        4. If relaxed constraints are met then continue
         
+        """
+        doors = random.choice(range(1,2)) #4))     # Randomly selects the number of doors to change
+        # Select cells to close
+        for i in range(doors):
+            change_item = random.choice(range(m1.width*m1.height)) 
+
+            # Close 1 door (create islanded map section)
+            change_item_neighbor = m1.cells[change_item].walls  # Randomly select cell outside of island to close door           
+            door_close_options = [N, S, E, W]
+            for i1 in change_item_neighbor:                     # find open doors
+                door_close_options.remove(i1)
+            door_close = random.choice(door_close_options)      # randomly select from open doors
+            
+            new_cell = [door_close]                             # Combine existing doors and new door
+            for i1 in change_item_neighbor:
+                new_cell.append(str(i1))            
+            m1.cells[change_item] = Cell(m1.cells[change_item].x, m1.cells[change_item].y, sorted(new_cell))
+
+           
+            
+            
+            FIX FROM HERE:
+                Need to capture the cells in the island created and make sure they are less than the outside
+                Challenges dealing with intersections 
+                A Tee could close door in a location that connects the soln path to a dead end or cuts off a dead-end)
+                Need to determine which and then select matches2 appropriately
+            
+            
+            # Find shortest path (1: to end of dead end, 2: beginning or end of maze)
+            # On solution path
+            if m1.map_section[change_item] in m1.Sections_on_soln_path:     
+                items_down = len([x for x in m1.map_section if x < m1.map_section[change_item]]) + m1.map_length[change_item]                                                                               # cells behind location     
+                items_up   = len([x for x in m1.map_section if x > (m1.map_section[change_item])]) + len([x for x in m1.map_section if x==m1.map_section[change_item]]) - (m1.map_length[change_item]+1)    # cells ahead of location
+                if items_down<items_up:
+                    matches2 = list(x for x in range(len(m1.map_section)) if ((m1.map_section[x] < m1.map_section[change_item]) or (m1.map_section[x]==m1.map_section[change_item] and m1.map_length[change_item]>m1.map_length[x])))  # find index of all items behind current cell        
+                else:
+                    matches2 = list(x for x in range(len(m1.map_section)) if ((m1.map_section[x] > m1.map_section[change_item]) or (m1.map_section[x]==m1.map_section[change_item] and m1.map_length[change_item]<m1.map_length[x])))  # find index of all items behind current cell                     
+            # On dead-end
+            else:                                                           
+                matches2 = list(x for x in range(len(m1.map_section)) if ((m1.map_length[x]>m1.map_length[change_item]) and (m1.map_section[x]==m1.map_section[change_item])))  # find the items that follow change_item           
+
+            """
+            matches1 = list(x for x in range(len(m1.map_section)) if m1.map_section[x]==m1.map_section[change_item])  # find index of all items in a given section
+            matches2 = list(x for x in matches1 if m1.map_length[x]>m1.map_length[change_item])  # find the items that follow change_item           
+
+            [x for x in range(len(m1.map_section)) if m1.map_section[x] == m1.map_section[change_item]]
+            """            
+            
+             
+            
+            # Open random door to connect islanded section
+            neighbors_stack = []                                # Create list of cell indexes to connect islanded section
+            for i1 in matches2:
+                neighbors = [c for c in m1.neighbors(m1.cells[i1])]
+                for i2 in neighbors:
+                    if not i2 in list(m1.cells[x] for x in matches2+[change_item]):                       
+                        neighbors_stack.append(i2.x + i2.y * m1.width)  # Add only items that are around the islanded section and not items in that section
+                     
+            neighbor = m1.cells[random.choice(neighbors_stack)] # Randomly select cell to connect to outside of island            
+            neighbors = []                                      # Match random main branch cell (neighbor) to nearest islanded cell
+            for i1 in [c for c in m1.neighbors(neighbor)]:
+                if i1 in [m1.cells[c] for c in matches2]:
+                    neighbors.append(i1)
+            neighbors = random.choice(neighbors)     
+            neighbor.connect(neighbors)
+    
         
-    def prop_calc(self):
+    def prop_calc(self, cell_entrance, cell_exit):
         """
         Define maze properties
           http://datagenetics.com/blog/november22015/index.html
@@ -308,19 +381,23 @@ class Maze(object):
         7. Maximum straight section
         """        
         # Property     [1   2   3   4   5   6   7  ]
-        Weighting =    [1  ,1  ,0  ,1  ,3  ,3  ,1  ]      # Set Total_score weighting values
-        Constraints = [[4  ,0  ,0  ,7  ,5  ,0  ,0  ],     # Min constraint
-                       [6  ,10 ,1  ,10 ,10 ,9  ,3  ]]     # Max constraint
+        Weighting =    [10 ,1  ,0  ,10 ,3  ,3  ,1  ]      # Set Total_score weighting values
+        Constraints = [[0.4,0  ,0  ,.65,5  ,0  ,0  ],     # Min constraint
+                       [0.6,10 ,1  ,1  ,10 ,9  ,4  ]]     # Max constraint
 
         text1 = []    
         # 1. Use the wall follower to determine maze properties
-        cell = self.cells[0]     # Set starting point    #cell = random.choice(self.cells)
+        ###if cell_entrance is None: cell_entrance = [0,0]
+        ###if cell_exit is None: cell_exit = [0,0]
+        cell = self[cell_entrance] # Set starting point    #cell = random.choice(self.cells)
         movement_dir = 's'       # Set starting direction
         n_visited_cells = 1
         cell_stack = []
         cell_stack.append(cell)        
-        #cell_stack_max = []     # Holds maximum length solution
-        cell_stack_max_wall = [] # Holds maximum length solution that touches east or south wall
+        self.cell_stack_max_wall = [] # Holds maximum length solution that touches east or south wall        
+        previous_cell = []
+        self.map_section = [0] * self.height * self.width     # Contains a number for the section of maze      
+        self.map_length = [0] * self.height * self.width      # Contains the consecutive length of each path
         while (n_visited_cells < len(self.cells)) or (cell == self.cells[0]):
             # Find viable wall using right wall follower
             [x,y,movement_dir] = self.right_wall(cell,movement_dir)
@@ -332,15 +409,41 @@ class Maze(object):
                     cell_stack.pop() 
                     break
                 if i==0:
+                    previous_cell = cell_stack[-1].x + cell_stack[-1].y * self.width
+                    if (4-len(cell_stack[-1].walls)>2):
+                        self.map_section[x + y * self.width] = max(self.map_section)+1
+                    else:
+                        self.map_section[x + y * self.width] = self.map_section[previous_cell]
+                        self.map_length[x + y * self.width] = self.map_length[previous_cell]+1   
                     cell_stack.append(cell)
                     n_visited_cells += 1 
-                      ## Track longest route
-                      #if (len(cell_stack)>len(cell_stack_max)):
-                      #    cell_stack_max = cell_stack[:]                    
+                    
                     # Track longest route that ends on opposite walls
-                    if (len(cell_stack)>len(cell_stack_max_wall) and (cell.x==self.width-1 or cell.y==self.height-1)):
-                        cell_stack_max_wall = cell_stack[:]
-        text1.append('1. Solution length = '+str(len(cell_stack_max_wall))+', '+str(round(len(cell_stack_max_wall)/(self.width*self.height)*100,1))+'% of cells, Exit = ['+str(cell_stack_max_wall[-1].x)+','+str(cell_stack_max_wall[-1].y)+']')
+                    if (len(cell_stack)>len(self.cell_stack_max_wall) and (cell.x==self.width-1 or cell.y==self.height-1)):
+                            if not cell_exit==cell_entrance: 
+                                if (cell.x==cell_exit[0] and cell.y==cell_exit[1]):
+                                    self.cell_stack_max_wall = cell_stack[:]
+                            else:
+                                self.cell_stack_max_wall = cell_stack[:]
+
+        # Adjust the mapping along the solution path
+        self.Sections_on_soln_path = set()      # Keep track of the different maze sections that are on the solution path
+        for i in self.cell_stack_max_wall:  
+            x = i.x
+            y = i.y
+            if i in self.cell_stack_max_wall:
+                self.Sections_on_soln_path.add(self.map_section[x + y * self.width])               
+            
+            # Adjust section along the solution path and renumber for path length 
+            """
+            self.map_section[x + y * self.width] = 0
+            if i==0:
+                len1 = 0
+            else: 
+                len1 += 1
+            self.map_length[x + y * self.width] = len1
+            """
+        text1.append('1. Solution length = '+str(len(self.cell_stack_max_wall))+', '+str(round(len(self.cell_stack_max_wall)/(self.width*self.height)*100,1))+'% of cells, Exit = ['+str(self.cell_stack_max_wall[-1].x)+','+str(self.cell_stack_max_wall[-1].y)+']')
 
         # 1. Count the number of dead ends
         dead_ends = 0
@@ -362,10 +465,10 @@ class Maze(object):
         # 4 & 5. Determine convolution of the longest paths and Complexity
         Convolution = [0,0]     # [Straight, Turn]
         Complexity = 0          # Minimum number of decisions to solve maze
-        for i0 in range(len(cell_stack_max_wall)-2):
-            cell0 = cell_stack_max_wall[i0]
-            cell1 = cell_stack_max_wall[i0+1]
-            cell2 = cell_stack_max_wall[i0+2]
+        for i0 in range(len(self.cell_stack_max_wall)-2):
+            cell0 = self.cell_stack_max_wall[i0]
+            cell1 = self.cell_stack_max_wall[i0+1]
+            cell2 = self.cell_stack_max_wall[i0+2]
             if (abs(cell0.x-cell2.x)==2 or abs(cell0.y-cell2.y)==2):
                 Convolution[0] += 1     # Straight
             else:
@@ -378,10 +481,10 @@ class Maze(object):
          
         #6 Length of dead ends
         List_of_dead_ends = []
-        for i0 in range(len(cell_stack_max_wall)-2):
-            cell0 = cell_stack_max_wall[i0]
-            cell1 = cell_stack_max_wall[i0+1]
-            cell2 = cell_stack_max_wall[i0+2]
+        for i0 in range(len(self.cell_stack_max_wall)-2):
+            cell0 = self.cell_stack_max_wall[i0]
+            cell1 = self.cell_stack_max_wall[i0+1]
+            cell2 = self.cell_stack_max_wall[i0+2]
             if len(cell1.walls)<2:
                 open_dir = [N,S,E,W]
                 if len(cell1.walls)!=0:
@@ -390,7 +493,7 @@ class Maze(object):
                 open_dir.remove(cell1._wall_to(cell0))
                 for movement_dir in open_dir:      # Runs through each available dead end
                     List_of_dead_ends.append(self.go_to_path_end(cell1,movement_dir))
-            if i0==len(cell_stack_max_wall)-3:
+            if i0==len(self.cell_stack_max_wall)-3:
                 open_dir = [N,S,E,W]
                 if len(cell2.walls)!=0:
                     for i1 in cell2.walls: open_dir.remove(i1)
@@ -398,6 +501,7 @@ class Maze(object):
                 for movement_dir in open_dir:      # Runs through each available dead end
                     #List_of_dead_ends.append(self.go_to_path_end(cell2,movement_dir))   # Consider adding back in when adjusting doors
                     List_of_dead_ends.append(100)     # Add a 100 to prevent having dead ends that require you to pass the door
+        if List_of_dead_ends==[]: List_of_dead_ends=0
         text1.append('6. Max length of dead end = '+str(max(List_of_dead_ends)))
         
         # 7. Maximum straight length
@@ -420,10 +524,10 @@ class Maze(object):
                     Longest_segment=Segment_length
         text1.append('7. Maximum straight length = '+str(Longest_segment))
         
-        Property_matrix = [dead_ends,
-                           len(cell_stack_max_wall)/(self.width*self.height)*10,
+        Property_matrix = [len(self.cell_stack_max_wall)/(self.width*self.height),
+                           dead_ends,
                            0,
-                           (int(Convolution[1])/(int(Convolution[1])+int(Convolution[0])))*10,
+                           (int(Convolution[1])/(int(Convolution[1])+int(Convolution[0]))),
                            Complexity,
                            max(List_of_dead_ends),
                            Longest_segment]
@@ -444,7 +548,7 @@ class Maze(object):
         """
         m = Maze(width, height)
         m.randomize()
-        m.prop_calc()
+        #m.prop_calc()
         return m
     
 
@@ -456,7 +560,9 @@ count1 = 0
 while Total_score<Desired_score:   
     m1 = Maze(8,8)
     m1.randomize()
-    [Total_score,Output_text] = m1.prop_calc()
+    cell_entrance = [0,0]
+    cell_exit = [0,0]
+    [Total_score,Output_text] = m1.prop_calc(cell_entrance,cell_exit)
     count1 += 1
     if count1 % 1000==0: 
         print(count1)
@@ -467,13 +573,39 @@ for i in Output_text:
 print('Iterations required to achieve a score of '+str(Total_score)+' was '+str(count1))   
  
 
+
 """
 Steps for reshaping maze
-1. randomly pick several segments (2-10)
+1. randomly pick several segments (even number)
 2. Change door position
 3. Check properties
 4. If relaxed constraints are met then continue
+Use maze solution skeleton to quickly help find potential doors to 
+
+   1111    1111   
+   1     1   1   1 
+11111111111111111111
+
 """
 
+"""
+BEGIN FIXING FROM HERE
+
+Total_score = 0
+Desired_score = 20 
+count1 = 0   
+while Total_score<Desired_score:   
+    cell_entrance = [0,0]
+    cell_exit = [0,0]
+    [Total_score,Output_text] = m1.prop_calc(cell_entrance,cell_exit)
+    count1 += 1
+    if count1 % 1000==0: 
+        print(count1)
+
+print(m1)
+for i in Output_text:
+    print(i)
+print('Iterations required to achieve a score of '+str(Total_score)+' was '+str(count1))   
+"""
 
 
