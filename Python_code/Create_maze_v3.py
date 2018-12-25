@@ -53,7 +53,58 @@ class Cell(object):
         other.walls.remove(other._wall_to(self))
         self.walls.remove(self._wall_to(other))
 
-       
+
+class Node:
+    """
+    Based on code from Solomon Ucko (https://stackoverflow.com/questions/2358045/how-can-i-implement-a-tree-in-python-are-there-any-built-in-data-structures-in)
+    """
+    def __init__(self):
+        self.name: int = 0
+        self.length: int = 0
+        self.children: List[Node] = []
+        self.parent: Node = self
+
+    def __getitem__(self, i: int) -> 'Node':
+        return self.children[i]
+
+    def add_child(self):
+        child = Node()
+        self.children.append(child)
+        child.parent = self
+        return child    
+    """ 
+    Visualization doesn't work
+    def __str__(self) -> str:
+        def _get_character(x, left, right) -> str:
+            if x < left:
+                return '/'
+            elif x >= right:
+                return '\\'
+            else:
+                return '|'
+
+        if len(self.children):
+            children_lines: Sequence[List[str]] = list(map(lambda child: str(child).split('\n'), self.children))
+            widths: Sequence[int] = list(map(lambda child_lines: len(child_lines[0]), children_lines))
+            max_height: int = max(map(len, children_lines))
+            total_width: int = sum(widths) + len(widths) - 1
+            left: int = (total_width - len(self.name) + 1) // 2
+            right: int = left + len(self.name)
+
+            return '\n'.join((
+                self.name.center(total_width),
+                ' '.join(map(lambda width, position: _get_character(position - width // 2, left, right).center(width),
+                             widths, accumulate(widths, add))),
+                *map(
+                    lambda row: ' '.join(map(
+                        lambda child_lines: child_lines[row] if row < len(child_lines) else ' ' * len(child_lines[0]),
+                        children_lines)),
+                    range(max_height))))
+        else:
+            return self.name
+    """
+ 
+    
 class Maze(object):
     """
     Maze class containing full board and maze generation algorithms.
@@ -300,11 +351,273 @@ class Maze(object):
         2. Change door position
         3. Check properties
         4. If relaxed constraints are met then continue
-        
         """
         doors = random.choice(range(1,2)) #4))     # Randomly selects the number of doors to change
         # Select cells to close
         for i in range(doors):
+            
+            
+               
+            def make_tree(tree,tree_size):
+                if tree.length==1:  # Exit function if the path is only 1 segment long
+                    return
+                i0 = [x for x in range(len(m1.map_section)) if ((m1.map_length[x]==tree.length-2) and (m1.map_section[x]==tree.name))]     # Find next to last item in section 
+                i1 = [x for x in range(len(m1.map_section)) if ((m1.map_length[x]==tree.length-1) and (m1.map_section[x]==tree.name))]     # Find last item in section 
+                intersection_options = [N, S, E, W]
+                intersection_options.remove(m1.cells[i1[0]]._wall_to(m1.cells[i0[0]]))  # Remove direction of travel
+                for i2 in m1.cells[i1[0]].walls:                                        # Find possible travel directions
+                    intersection_options.remove(i2)
+                for i3 in range(len(intersection_options)):      # Run last item in section through loop for each door option (2-3), also skips dead-ends when intersection_options is empty
+                    x = m1.cells[i1[0]].x
+                    y = m1.cells[i1[0]].y
+                    tree.add_child()                  
+                    if   intersection_options[i3]==N: item1 = (x) + (y-1) * m1.width
+                    elif intersection_options[i3]==S: item1 = (x) + (y+1) * m1.width
+                    elif intersection_options[i3]==W: item1 = (x-1) + (y) * m1.width
+                    elif intersection_options[i3]==E: item1 = (x+1) + (y) * m1.width
+                    tree[i3].name = m1.map_section[item1]
+                    tree[i3].length = len([z for z in range(len(m1.map_section)) if m1.map_section[z]==m1.map_section[item1]])
+                if len(m1.tree_data)!=tree_size:
+                    m1.tree_data[tree_size].extend(tree[:])    
+                else:
+                    m1.tree_data.append(tree[:])
+            
+            
+            #Define Tree
+            tree = Node()
+            tree.name = 0
+            tree.length = len([x for x in range(len(m1.map_section)) if m1.map_section[x]==0])
+            m1.tree_data = []
+            m1.tree_data.append([tree])
+            tree_size = 1            
+            
+            for i1 in range(len(m1.Sections_on_soln_path)):           
+                for i2 in range(len(m1.tree_data[i1][:])):
+                    make_tree(m1.tree_data[i1][i2],tree_size)   
+                tree_size += 1
+                    
+                    
+            make_tree(m1.tree_data[0][0],tree_size)   
+            tree_size += 1
+            make_tree(m1.tree_data[1][0],tree_size)   
+            make_tree(m1.tree_data[1][1],tree_size)   
+            tree_size += 1
+            make_tree(m1.tree_data[2][0],tree_size)   
+            make_tree(m1.tree_data[2][1],tree_size)   
+            
+            
+            
+            m1.tree_data[0][:]
+            m1.tree_data[1][:]
+            m1.tree_data[2][:]
+            m1.tree_data[3][:]
+            m1.tree_data[4][:]
+            m1.tree_data[5][:]
+            m1.tree_data[6][:]
+            
+            
+            m1.tree_data[0][0].name
+            m1.tree_data[1][0].name
+            m1.tree_data[1][1].name
+            m1.tree_data[2][0].name
+            m1.tree_data[2][1].name
+            m1.tree_data[3][0].name
+            m1.tree_data[3][1].name
+            m1.tree_data[3][2].name
+            m1.tree_data[3][3].name
+            
+            
+            m1.tree_data[0].extend(m1.tree_data[0])    
+            m1.tree_data.append(tree[:])
+                    
+            
+            m1.tree_data.append(tree_data[0][:])
+            tree_size
+            make_tree(m1.tree_data[0][0],tree_size)   
+            tree_size += 1
+            
+            
+                    """        
+                                  0
+                             1           14
+                        2         11
+                     3     4    12  13   
+                        10   5   
+                           6   9
+                          7 8
+                    """    
+                    
+                    map_section_count = 0
+            
+                    map_section_count += 1
+                    
+                    tree_data.append([tree,tree])
+            """
+            End Test
+            """
+            
+            
+                    # Check the previous row's end points to run function for children
+                    # Move down a tree layer and repeat for all possible items on that row
+                    
+                    ## consider looping through parnets or children
+                    ##     for i4 in tree.children[0]
+                    for i4 in tree_data[tree_size][:]:
+         
+                       
+            while map_section_count < max(m1.map_section):           
+                
+                tree_length_2 = tree.length-2
+                tree_length_1 = tree.length-1
+                tree_map_section = tree.name
+                
+                i0 = [x for x in range(len(m1.map_section)) if ((m1.map_length[x]==tree.length-2) and (m1.map_section[x]==tree_map_section))]     # Find next to last item in section 
+                i1 = [x for x in range(len(m1.map_section)) if ((m1.map_length[x]==tree.length-1) and (m1.map_section[x]==tree_map_section))]     # Find last item in section 
+                intersection_options = [N, S, E, W]
+                intersection_options.remove(m1.cells[i1[0]]._wall_to(m1.cells[i0[0]]))  # Remove direction of travel
+                for i2 in m1.cells[i1[0]].walls:                                        # Find possible travel directions
+                    intersection_options.remove(i2)
+              
+                """
+                STOP HERE: 
+                    Fix next section so that it can change between levels based on tree_size
+                """
+                
+                for i3 in range(len(intersection_options)):      # Run last item in section through loop for each door option (2-3)
+                    x = m1.cells[i1[0]].x
+                    y = m1.cells[i1[0]].y
+                    eval(''.join(['tree.add_child()']))                    
+                    if   intersection_options[i3]==N: item1 = (x) + (y-1) * m1.width
+                    elif intersection_options[i3]==S: item1 = (x) + (y+1) * m1.width
+                    elif intersection_options[i3]==W: item1 = (x-1) + (y) * m1.width
+                    elif intersection_options[i3]==E: item1 = (x+1) + (y) * m1.width
+                    tree[i3].name = m1.map_section[item1]
+                    tree[i3].length = len([z for z in range(len(m1.map_section)) if m1.map_section[z]==m1.map_section[item1]])
+                    map_section_count += 1
+                
+                tree_size += 1
+                
+                
+                # Find if the last item in the first branch of the tree is a dead-end. If not move to the next
+                
+                tree_length_2 = tree[0].length-2
+                tree_length_1 = tree[0].length-1
+                tree_map_section = tree[0].name
+                
+                i0 = [x for x in range(len(m1.map_section)) if ((m1.map_length[x]==tree_length_2) and (m1.map_section[x]==tree_map_section))]     # Find next to last item in section 
+                i1 = [x for x in range(len(m1.map_section)) if ((m1.map_length[x]==tree_length_1) and (m1.map_section[x]==tree_map_section))]     # Find last item in section 
+                intersection_options = [N, S, E, W]
+                intersection_options.remove(m1.cells[i1[0]]._wall_to(m1.cells[i0[0]]))  # Remove direction of travel
+                for i2 in m1.cells[i1[0]].walls:                                        # Find possible travel directions
+                    intersection_options.remove(i2)
+              
+                for i3 in range(len(intersection_options)):      # Run last item in section through loop for each door option (2-3)
+                    x = m1.cells[i1[0]].x
+                    y = m1.cells[i1[0]].y
+                    eval(''.join(['tree[0].add_child()']))                    
+                    if   intersection_options[i3]==N: item1 = (x) + (y-1) * m1.width
+                    elif intersection_options[i3]==S: item1 = (x) + (y+1) * m1.width
+                    elif intersection_options[i3]==W: item1 = (x-1) + (y) * m1.width
+                    elif intersection_options[i3]==E: item1 = (x+1) + (y) * m1.width
+                    tree[0][i3].name = m1.map_section[item1]
+                    tree[0][i3].length = len([z for z in range(len(m1.map_section)) if m1.map_section[z]==m1.map_section[item1]])
+                    map_section_count += 1
+                
+                
+                
+                tree_length_2 = tree[1].length-2
+                tree_length_1 = tree[1].length-1
+                tree_map_section = tree[1].name
+                
+                i0 = [x for x in range(len(m1.map_section)) if ((m1.map_length[x]==tree_length_2) and (m1.map_section[x]==tree_map_section))]     # Find next to last item in section 
+                i1 = [x for x in range(len(m1.map_section)) if ((m1.map_length[x]==tree_length_1) and (m1.map_section[x]==tree_map_section))]     # Find last item in section 
+                intersection_options = [N, S, E, W]
+                intersection_options.remove(m1.cells[i1[0]]._wall_to(m1.cells[i0[0]]))  # Remove direction of travel
+                for i2 in m1.cells[i1[0]].walls:                                        # Find possible travel directions
+                    intersection_options.remove(i2)
+                    
+                for i3 in range(len(intersection_options)):      # Run last item in section through loop for each door option (2-3), also skips dead-ends when intersection_options is empty
+                    x = m1.cells[i1[0]].x
+                    y = m1.cells[i1[0]].y
+                    eval(''.join(['tree[0].add_child()']))                    
+                    if   intersection_options[i3]==N: item1 = (x) + (y-1) * m1.width
+                    elif intersection_options[i3]==S: item1 = (x) + (y+1) * m1.width
+                    elif intersection_options[i3]==W: item1 = (x-1) + (y) * m1.width
+                    elif intersection_options[i3]==E: item1 = (x+1) + (y) * m1.width
+                    tree[1][i3].name = m1.map_section[item1]
+                    tree[1][i3].length = len([z for z in range(len(m1.map_section)) if m1.map_section[z]==m1.map_section[item1]])
+                    map_section_count += 1
+             
+                tree_size += 1
+              
+                
+                for i5 in len(tree[:]):
+                    
+                    func(tree)
+                    
+                    for i4 in len(tree[i5][:]):
+                        tree_text = ''.join(['tree[',str(i5),'][',str(i4),']'])
+                        tree_text = ''.join(['tree[',str(i5),'][',str(i4),']'])                        
+                        
+                        eval(''.join(['tree_length_2 = ',tree_text,'.length-2']))
+                        eval(''.join(['tree_length_1 = ',tree_text,'.length-1']))
+                        eval(''.join(['tree_map_section = ',tree_text,'.name']))
+                         
+                        i0 = [x for x in range(len(m1.map_section)) if ((m1.map_length[x]==tree_length_2) and (m1.map_section[x]==tree_map_section))]     # Find next to last item in section 
+                        i1 = [x for x in range(len(m1.map_section)) if ((m1.map_length[x]==tree_length_1) and (m1.map_section[x]==tree_map_section))]     # Find last item in section 
+                        intersection_options = [N, S, E, W]
+                        intersection_options.remove(m1.cells[i1[0]]._wall_to(m1.cells[i0[0]]))  # Remove direction of travel
+                        for i2 in m1.cells[i1[0]].walls:                                        # Find possible travel directions
+                            intersection_options.remove(i2)
+                            
+                        for i3 in range(len(intersection_options)):      # Run last item in section through loop for each door option (2-3), also skips dead-ends when intersection_options is empty
+                            x = m1.cells[i1[0]].x
+                            y = m1.cells[i1[0]].y
+                            eval(''.join([tree_text,'.add_child()']))                    
+                            if   intersection_options[i3]==N: item1 = (x) + (y-1) * m1.width
+                            elif intersection_options[i3]==S: item1 = (x) + (y+1) * m1.width
+                            elif intersection_options[i3]==W: item1 = (x-1) + (y) * m1.width
+                            elif intersection_options[i3]==E: item1 = (x+1) + (y) * m1.width
+                            eval(''.join([tree_text,'.name = m1.map_section[item1]']))
+                            eval(''.join([tree_text,'.length = len([z for z in range(len(m1.map_section)) if m1.map_section[z]==m1.map_section[item1]])']))
+                            map_section_count += 1
+                 
+                tree_size += 1
+                
+                
+                
+                # Move to the next level and find if the new tree sections need additioanl items added
+                
+                tree[0][1][1][0][1][0]    
+               
+                
+                
+                eval(''.join(['range(len(tree','[:]'*tree_size,'))']))
+                eval(''.join(['range(len(tree',''.join(['[',str(i3),']'])*tree_size,'))']))
+                        
+                
+               
+            
+            tree = Node()
+            tree.name = 100    #'Root node'
+            tree.add_child()
+            tree[0].name = 101 #'Child node 0'
+            tree.add_child()
+            tree[1].name = 102 #'Child node 1'
+            tree.add_child()
+            tree[2].name = 103 #'Child node 2'
+            tree[1].add_child()
+            tree[1][0].name = 1021 #'Grandchild 1.0'
+            tree[2].add_child()
+            tree[2][0].name = 1031 #'Grandchild 2.0'
+            tree[2].add_child()
+            tree[2][1].name = 1032 #'Grandchild 2.1'
+            print(tree)
+                        
+            
+
+
+            
             change_item = random.choice(range(m1.width*m1.height)) 
 
             # Close 1 door (create islanded map section)
@@ -319,15 +632,15 @@ class Maze(object):
                 new_cell.append(str(i1))            
             m1.cells[change_item] = Cell(m1.cells[change_item].x, m1.cells[change_item].y, sorted(new_cell))
 
-           
             
-            
+            """
             FIX FROM HERE:
                 Need to capture the cells in the island created and make sure they are less than the outside
                 Challenges dealing with intersections 
                 A Tee could close door in a location that connects the soln path to a dead end or cuts off a dead-end)
                 Need to determine which and then select matches2 appropriately
-            
+                Also some dead ends using the right-hand rule are not always counted in the right place. 
+            """
             
             # Find shortest path (1: to end of dead end, 2: beginning or end of maze)
             # On solution path
